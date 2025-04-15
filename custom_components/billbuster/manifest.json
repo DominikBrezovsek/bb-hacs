@@ -1,6 +1,7 @@
 {
   "domain": "billbuster",
   "name": "BillBuster",
+  "version": "0.1.0",
   "codeowners": ["@dominikbrezovsek"],
   "config_flow": true,
   "dependencies": [],
