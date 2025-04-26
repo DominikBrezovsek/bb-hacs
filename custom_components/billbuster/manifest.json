@@ -1,14 +1,12 @@
 {
   "domain": "billbuster",
   "name": "BillBuster",
-  "version": "0.1.0",
   "codeowners": ["@dominikbrezovsek"],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://www.home-assistant.io/integrations/billbuster",
   "iot_class": "cloud_push",
   "quality_scale": "bronze",
-  "issue_tracker": "https://github.com/DominikBrezovsek/bb-hacs/issues",
   "requirements": [
     "pandas==2.2.3",
     "deye-controller==0.2.1",

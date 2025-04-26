@@ -1,9 +1,11 @@
 import logging
 from typing import Any
 
+import aiohttp
 import voluptuous as vol
 
 from homeassistant import config_entries
+from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import config_validation as cv
 
 from .const import (
@@ -22,10 +24,39 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
-    async def async_step_init(self, user_input: dict[str, Any] | None = None):
+    async def validate_input(self, data: dict[str, Any]) -> dict[str, str]:
+        """Validate the API key by trying to connect."""
+        errors: dict[str, str] = {}
+        session = aiohttp.ClientSession()
+        test_url = "https://nexa-api.sigma-solutions.eu/api/integration/verify-token"
+        token = data[CONF_API_KEY]
+        try:
+            async with session.post(test_url, data={"apiToken": token}) as resp:
+                _LOGGER.info("Resp status is: %s", resp.status)
+                if resp.status == 400:
+                    _LOGGER.error("API key rejected by endpoint")
+                    errors["API Token"] = "invalid_auth"
+                    raise InvalidAuth("Invalid API key")
+            _LOGGER.info("API key validated successfully (in options flow)")
+        except aiohttp.ClientConnectorError as err:
+            _LOGGER.error("Cannot connect to API endpoint: %s", err)
+            errors["base"] = "cannot_connect"
+        except Exception:
+            _LOGGER.exception("Unknown error occurred during API key validation")
+            errors["base"] = "unknown"
+        finally:
+            await session.close()
+        return errors
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
         """Manage the options."""
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_create_entry(data=user_input)
+            errors = await self.validate_input(user_input)
+            if not errors:
+                return self.async_create_entry(data=user_input)
 
         return self.async_show_form(
             step_id="init",
@@ -81,4 +112,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     ): vol.All(vol.Coerce(int), vol.Range(min=0, max=100)),
                 }
             ),
+            errors=errors,
         )
+
+
+class InvalidAuth(Exception):
+    """Error to indicate there is invalid auth."""
+
+
+class CannotConnect(Exception):
+    """Error to indicate there is a problem connecting."""

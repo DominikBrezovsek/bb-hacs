@@ -85,12 +85,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Validate the API key by trying to connect."""
 
         session = aiohttp.ClientSession()
-        test_url = "https://nexa-api.sigma-solutions.eu/validate_key"
-        headers = {"Authorization": f"Bearer {data[CONF_API_KEY]}"}
+        test_url = "https://nexa-api.sigma-solutions.eu/api/integration/verify-token"
+        token = data[CONF_API_KEY]
         try:
-            _LOGGER.info(
-                "API key validated successfully"
-            )  # replace with your api call.
+            async with session.post(test_url, data={"apiToken": token}) as resp:
+                if resp.status == 400:
+                    _LOGGER.error("API key rejected by endpoint")
+                    resp.raise_for_status()
+                _LOGGER.info("API key validated successfully")
+                _LOGGER.info("Response code: %s", resp.status)
         except aiohttp.ClientConnectorError as err:
             _LOGGER.error("Cannot connect to API endpoint: %s", err)
             raise CannotConnect("Cannot connect to the API endpoint")

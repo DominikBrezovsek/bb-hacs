@@ -1,21 +1,26 @@
 {
     "config": {
-        "abort": {
-            "already_configured": "Device is already configured"
-        },
-        "error": {
-            "cannot_connect": "Failed to connect",
-            "invalid_auth": "Invalid authentication",
-            "unknown": "Unexpected error"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "host": "Host",
-                    "password": "Password",
-                    "username": "Username"
-                }
-            }
+      "step": {
+        "user": {
+          "description": "Configure your Billbuster integration."
         }
+      },
+      "error": {
+        "invalid_auth": "Invalid API key. Please check your key and try again.",
+        "cannot_connect": "Could not connect to the API endpoint. Please check your network connection and the API address.",
+        "unknown": "Invalid API key. Please check your key and try again."
+      }
+    },
+    "options": {
+      "step": {
+        "init": {
+          "description": "Configure the Billbuster integration options."
+        }
+      },
+      "error": {
+        "invalid_auth": "Invalid API key. Please check your key and try again.",
+        "cannot_connect": "Could not connect to the API endpoint. Please check your network connection and the API address.",
+        "unknown": "Invalid API key. Please check your key and try again."
+      }
     }
-}
+  }
