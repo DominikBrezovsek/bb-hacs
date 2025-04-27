@@ -8,6 +8,7 @@ CONF_PEAK_CHARGE_POWER = "peak_charging_power"
 CONF_MIN_SOC = "min_soc"
 CONF_MAX_SOC = "max_soc"
 CONF_API_KEY = "api_key"
+CONF_SELECTABLE_VALUE = "selectable_value"
 
 DEFAULT_MIN_SOC = 10
 DEFAULT_MAX_SOC = 95
