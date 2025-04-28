@@ -28,18 +28,22 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def _fetch_selectable_values(self, api_key: str) -> list[str] | None:
         """Fetch selectable values from the API."""
         session = aiohttp.ClientSession()
-        url = "https://nexa-api.sigma-solutions.eu/api/integration/get-meters"
+        url = "https://nexa-api.sigma-solutions.eu/api/integration/get-meter-points"
         token = api_key
         try:
             async with session.post(
-                url, data={"apiKey": token}, timeout=10
+                url, data={"apiToken": token}, timeout=10
             ) as response:
                 if response.status != 200:
                     response.raise_for_status()
                 data = await response.json()
-                selectable_values = [
-                    item if isinstance(item, str) else item.get("name") for item in data
-                ]
+                selectable_values = []
+                if "meterPoints" in data and isinstance(data["meterPoints"], list):
+                    for meter_point in data["meterPoints"]:
+                        name = meter_point.get("name")
+                        address = meter_point.get("address")
+                        if name and address:
+                            selectable_values.append(f"{name} ({address})")
                 return [value for value in selectable_values if value]
         except aiohttp.ClientConnectorError as err:
             _LOGGER.error("Error connecting to API to fetch dropdown values: %s", err)
@@ -71,7 +75,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             _LOGGER.error("Cannot connect to API endpoint for validation: %s", err)
             errors["base"] = "cannot_connect"
         except InvalidAuth:
-            pass  # Errors already set
+            pass
         except Exception:
             _LOGGER.exception("Unknown error occurred during API key validation")
             errors["base"] = "unknown"
@@ -95,9 +99,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         selectable_values = await self._fetch_selectable_values(current_api_key)
 
         if selectable_values is None:
-            return self.async_abort(reason="cannot_connect_dropdown")  # Add translation
+            return self.async_abort(reason="cannot_connect_dropdown")
         elif not selectable_values:
-            return self.async_abort(reason="no_selectable_values")  # Add translation
+            return self.async_abort(reason="no_selectable_values")
 
         options_schema = vol.Schema(
             {

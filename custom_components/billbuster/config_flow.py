@@ -50,18 +50,22 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def _fetch_selectable_values(self, api_key: str) -> list[str] | None:
         """Fetch selectable values from the API."""
         session = aiohttp.ClientSession()
-        url = "https://nexa-api.sigma-solutions.eu/api/integration/get-meters"
+        url = "https://nexa-api.sigma-solutions.eu/api/integration/get-meter-points"
         token = api_key
         try:
             async with session.post(
-                url, data={"apiKey": token}, timeout=10
+                url, data={"apiToken": token}, timeout=10
             ) as response:
                 if response.status != 200:
                     response.raise_for_status()
                 data = await response.json()
-                selectable_values = [
-                    item if isinstance(item, str) else item.get("name") for item in data
-                ]
+                selectable_values = []
+                if "meterPoints" in data and isinstance(data["meterPoints"], list):
+                    for meter_point in data["meterPoints"]:
+                        name = meter_point.get("name")
+                        address = meter_point.get("address")
+                        if name and address:
+                            selectable_values.append(f"{name} ({address})")
                 return [value for value in selectable_values if value]
         except aiohttp.ClientConnectorError as err:
             _LOGGER.error("Error connecting to API to fetch dropdown values: %s", err)
@@ -115,9 +119,18 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 elif not selectable_values:
                     errors["base"] = "no_selectable_values"
                 else:
-                    self.flow_context["user_input"] = user_input
-                    self.flow_context["selectable_values"] = selectable_values
-                    return await self.async_step_select()
+                    self.data = user_input  # Store user input in self.data
+                    return self.async_show_form(
+                        step_id="select",
+                        data_schema=vol.Schema(
+                            {
+                                vol.Required(CONF_SELECTABLE_VALUE): vol.In(
+                                    selectable_values
+                                )
+                            }
+                        ),
+                        errors=errors,
+                    )
             else:
                 errors = validation_errors
 
@@ -132,33 +145,22 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         """Handle the selection of a value."""
-        selectable_values = self.flow_context.get("selectable_values")
         errors: dict[str, str] = {}
-
         if user_input is not None:
             selected_value = user_input.get(CONF_SELECTABLE_VALUE)
-            if selected_value in selectable_values:
+            if selected_value:
                 return self.async_create_entry(
                     title="Inverter settings",
                     data={
-                        **self.flow_context.get("user_input", {}),
+                        **self.data,
                         CONF_SELECTABLE_VALUE: selected_value,
-                    },
+                    },  # Retrieve stored data
                 )
             else:
                 errors[CONF_SELECTABLE_VALUE] = "invalid_selection"
 
-        if selectable_values:
-            SELECT_SCHEMA = vol.Schema(
-                {
-                    vol.Required(CONF_SELECTABLE_VALUE): vol.In(selectable_values),
-                }
-            )
-            return self.async_show_form(
-                step_id="select", data_schema=SELECT_SCHEMA, errors=errors
-            )
-        else:
-            return self.async_abort(reason="no_selectable_values")
+        # This should not be reached if the previous step correctly fetched values
+        return self.async_abort(reason="unexpected_select_step")
 
     @staticmethod
     @callback
