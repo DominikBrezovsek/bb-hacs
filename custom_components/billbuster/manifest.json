@@ -1,6 +1,7 @@
 {
   "domain": "billbuster",
   "name": "BillBuster",
+  "version": "1.0.0",
   "codeowners": ["@dominikbrezovsek"],
   "config_flow": true,
   "dependencies": [],
@@ -12,5 +13,6 @@
     "deye-controller==0.2.1",
     "aiohttp==3.11.16",
     "pysolarmanv5==3.0.6"
-  ]
+  ],
+  "issue_tracker": "https://github.com/DominikBrezovsek/bb-hacs/issues"
 }
